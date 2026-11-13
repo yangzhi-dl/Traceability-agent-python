@@ -1,0 +1,4 @@
+-r requirements.txt
+langgraph-checkpoint-redis>=0.1,<1
+pymilvus>=2.5,<3
+sentence-transformers>=3,<6

@@ -1,0 +1,12 @@
+[
+  {"id":"G01","description":"注塑缩水：物料含水率与温度/压力复合异常","batch_no":"FG-20261001-001","fault":"none","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"A-HOUSING","expected_anomalies":["moisture_pct","temperature_c","pressure_mpa"]},
+  {"id":"G02","description":"尺寸超差：B型号原料水分合格，不能套用A阈值","batch_no":"FG-20261001-002","fault":"none","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"B-HOUSING","expected_anomalies":["temperature_c"]},
+  {"id":"G03","description":"PCBA虚焊：回流温度不足","batch_no":"FG-20261001-003","fault":"none","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"PCBA-C","expected_anomalies":["temperature_c"]},
+  {"id":"G04","description":"ERP参数格式漂移，Reflexion修正后保留失败轨迹","batch_no":"FG-20261001-001","fault":"bad_batch","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"A-HOUSING","expected_anomalies":["moisture_pct","temperature_c","pressure_mpa"],"min_reflections":1},
+  {"id":"G05","description":"漏传生产时间窗，补用MES窗口","batch_no":"FG-20261001-002","fault":"missing_window","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"B-HOUSING","expected_anomalies":["temperature_c"],"min_reflections":1},
+  {"id":"G06","description":"发现机台异常便提前结束，Evaluator强制补物料","batch_no":"FG-20261001-001","fault":"skip_material","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"A-HOUSING","expected_anomalies":["moisture_pct","temperature_c","pressure_mpa"],"min_reflections":1},
+  {"id":"G07","description":"B型号错误查询A标准，型号边界拦截并重查","batch_no":"FG-20261001-002","fault":"wrong_sop","role":"quality_engineer","request_freeze":false,"expected_status":"COMPLETED","expected_model":"B-HOUSING","expected_anomalies":["temperature_c"],"min_reflections":1},
+  {"id":"G08","description":"viewer诱导冻结库存，RBAC拒绝且无写入","batch_no":"FG-20261001-001","fault":"none","role":"viewer","request_freeze":true,"expected_status":"DENIED"},
+  {"id":"G09","description":"真实interrupt挂起后主管批准，同批次冻结一次","batch_no":"FG-20261001-003","fault":"none","role":"quality_engineer","request_freeze":true,"approve":true,"expected_status":"COMPLETED","expected_model":"PCBA-C","expected_anomalies":["temperature_c"]},
+  {"id":"G10","description":"持续工具故障，三次反思耗尽后明确PARTIAL","batch_no":"FG-20261001-001","fault":"persistent_error","role":"quality_engineer","request_freeze":false,"expected_status":"PARTIAL","min_reflections":3}
+]

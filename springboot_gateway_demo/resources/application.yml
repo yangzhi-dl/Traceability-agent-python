@@ -1,0 +1,17 @@
+server:
+  port: 8081
+spring:
+  datasource:
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  sql:
+    init:
+      mode: never
+gateway:
+  python-url: ${PYTHON_URL:http://127.0.0.1:8000}
+  shared-token: ${GATEWAY_TOKEN}
+  redis-address: ${GATEWAY_REDIS_ADDRESS:redis://127.0.0.1:6379}
+  jwt-issuer: ${JWT_ISSUER}
+  jwt-jwk-uri: ${JWT_JWK_URI}
+  jwt-audience: ${JWT_AUDIENCE:trace-gateway}

@@ -1,0 +1,32 @@
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- 本地工具缓存 ---
+.cache/
+
+# --- 环境变量与密钥 ---
+.env
+.env.*
+!.env.example
+
+# --- Claude / IDE 本地配置 ---
+.claude/
+.idea/
+.vscode/
+
+# --- Java / Maven 构建产物与依赖缓存 ---
+springboot_gateway_demo/target/
+springboot_gateway_demo/.m2/
+springboot_gateway_demo/.cache/
+**/target/
+*.class
+*.jar
+*.war
