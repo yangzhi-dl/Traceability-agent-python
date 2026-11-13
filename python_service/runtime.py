@@ -1,5 +1,4 @@
 """Service facade: trusted identity, checkpoint ownership, request/approval replay."""
-import os
 from contextlib import ExitStack, contextmanager
 from threading import Lock, RLock
 from uuid import uuid4
@@ -17,8 +16,14 @@ class TraceService:
         self.stack = ExitStack()
         self.redis = None
         if redis_url:
-            from langgraph.checkpoint.redis import RedisSaver
-            from redis import Redis
+            try:
+                from langgraph.checkpoint.redis import RedisSaver
+                from redis import Redis
+            except ImportError as exc:
+                raise RuntimeError(
+                    'REDIS_URL set but Redis checkpoint deps are missing; '
+                    'install with: uv pip install -r requirements-integrations.txt'
+                ) from exc
             saver = self.stack.enter_context(RedisSaver.from_conn_string(redis_url))
             saver.setup()  # Redis Stack / Redis 8 with JSON + Search, not plain Redis 7.
             self.redis = Redis.from_url(redis_url)

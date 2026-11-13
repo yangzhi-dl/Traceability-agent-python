@@ -9,7 +9,7 @@ import re
 from typing import Annotated, Any, TypedDict
 from uuid import uuid4
 
-from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, AnyMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -264,4 +264,4 @@ def build_graph(checkpointer, mode: str = 'mock'):
 
 
 # Public facade kept here for the requested learning path; storage/auth orchestration is separate.
-from .runtime import TraceService  # noqa: E402
+from .runtime import TraceService  # noqa: E402,F401

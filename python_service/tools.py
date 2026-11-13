@@ -12,7 +12,7 @@ from langgraph.prebuilt import InjectedState
 from pydantic import Field
 from rank_bm25 import BM25Okapi
 
-from .fixtures import CASES, SOPS, case
+from .fixtures import SOPS, case
 from .schemas import StrictModel, ToolObservation
 
 
@@ -32,12 +32,23 @@ class HybridRetriever:
             raise ValueError('RAG_BACKEND must be mock or real')
         self.documents = SOPS
         if self.backend == 'real':
+            self._init_real_backend()
+
+    def _init_real_backend(self):
+        # Optional heavy deps (pymilvus / sentence-transformers) are imported here so
+        # mock mode never requires them. Install via requirements-integrations.txt.
+        try:
             from pymilvus import MilvusClient
             from sentence_transformers import CrossEncoder, SentenceTransformer
-            # Require local model directories: running a request never downloads a model.
-            self.embedding = SentenceTransformer(os.environ['EMBEDDING_MODEL_PATH'], local_files_only=True)
-            self.reranker = CrossEncoder(os.environ['BGE_RERANKER_PATH'], local_files_only=True)
-            self.milvus = MilvusClient(uri=os.environ['MILVUS_URI'], token=os.getenv('MILVUS_TOKEN', ''))
+        except ImportError as exc:
+            raise RuntimeError(
+                'RAG_BACKEND=real requires pymilvus and sentence-transformers; '
+                'install with: uv pip install -r requirements-integrations.txt'
+            ) from exc
+        # Require local model directories: running a request never downloads a model.
+        self.embedding = SentenceTransformer(os.environ['EMBEDDING_MODEL_PATH'], local_files_only=True)
+        self.reranker = CrossEncoder(os.environ['BGE_RERANKER_PATH'], local_files_only=True)
+        self.milvus = MilvusClient(uri=os.environ['MILVUS_URI'], token=os.getenv('MILVUS_TOKEN', ''))
 
     def search(self, model_code: str, query: str) -> list[dict[str, Any]]:
         if not re.fullmatch(r'[A-Z0-9-]+', model_code):
