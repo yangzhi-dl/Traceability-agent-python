@@ -49,7 +49,7 @@ public class GatewayConfiguration {
         roles.setAuthorityPrefix("ROLE_");
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(roles);
-        return http.csrf(csrf -> csrf.disable()) // stateless Bearer API, no cookie authentication
+        return http.csrf(csrf -> csrf.disable()) // 无状态 Bearer API，不依赖 Cookie 认证
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a.anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter)))

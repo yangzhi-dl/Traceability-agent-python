@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-/** MVC returns an async Mono; database operations are delegated off event-loop threads. */
+/** MVC 返回异步 Mono；数据库操作被调度到事件循环线程之外执行。 */
 @RestController
 @RequestMapping("/api/v1/trace")
 public class DefectTraceController {

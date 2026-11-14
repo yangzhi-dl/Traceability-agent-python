@@ -1,7 +1,7 @@
-"""Mechanism reimplementation, not a dependency on OpenJudge or claw-eval.
+"""机制复刻实现，不依赖 OpenJudge 或 claw-eval。
 
-Source map: SOURCES.md. An evidence-based reason precedes binary score. Judge
-exceptions are failures, and model opinions cannot override deterministic numeric checks.
+来源映射见 SOURCES.md。二元评分之前先给出基于证据的理由。裁判异常
+视为失败，模型意见不得覆盖确定性数值校验。
 """
 import json
 import re
@@ -16,7 +16,7 @@ from ..tools import REQUIRED_TOOLS
 
 
 class BaseGrader(ABC):
-    """Small pointwise contract inspired by OpenJudge's pluggable BaseGrader."""
+    """借鉴 OpenJudge 可插拔 BaseGrader 的轻量逐点契约。"""
     @abstractmethod
     def grade(self, result: TraceResponse, expected_status: str = 'COMPLETED') -> GraderScore:
         raise NotImplementedError
@@ -49,7 +49,7 @@ def validate_report(report: RootCause8DReport, trajectory: list, expected_order:
     if sop.get('model_code') != report.model_code or any(d['model_code'] != report.model_code for d in sop['documents']):
         errors.append('cross-model SOP contamination')
     if not set(observations).issubset(report.evidence_ids) or not set(report.evidence_ids).issubset(observations):
-        # Freeze observation need not be a diagnostic evidence reference.
+        # 冻结操作的观察记录无需作为诊断证据引用。
         read_ids = {found[t]['evidence_id'] for t in REQUIRED_TOOLS}
         if not read_ids.issubset(report.evidence_ids) or not set(report.evidence_ids).issubset(observations):
             errors.append('missing or fabricated evidence IDs')
@@ -58,7 +58,7 @@ def validate_report(report: RootCause8DReport, trajectory: list, expected_order:
     for factor in report.factors.values():
         if not factor.evidence_ids or not set(factor.evidence_ids).issubset(observations):
             errors.append('factor lacks source binding')
-    # Numeric tokens in prose must occur in the evidence (including SOP bounds).
+    # 正文中的数值词元必须出现在证据中（含 SOP 阈值）。
     number = r'(?<![A-Za-z0-9])\d+(?:\.\d+)?'
     allowed = {float(n) for n in re.findall(number, json.dumps(found, ensure_ascii=False))}
     allowed.update({mes['defect_rate'] * 100, 4, 6, 8})
@@ -72,10 +72,10 @@ def validate_report(report: RootCause8DReport, trajectory: list, expected_order:
 
 
 class TrajectoryGrader(BaseGrader):
-    """Audit actual dispatches: inspection -> {ERP, sensor} -> SOP -> approved write.
+    """审计实际派发顺序：质检 -> {ERP, 传感器} -> SOP -> 已批准的写操作。
 
-    ERP and sensor can be swapped, but neither may be skipped. Failed attempts are
-    retained and never counted as successful evidence. Bounded recovery is allowed.
+    ERP 与传感器可以互换，但二者均不可跳过。失败的尝试会被保留，
+    绝不记作成功证据。允许有边界的纠错恢复。
     """
     def grade(self, result, expected_status='COMPLETED'):
         errors = []

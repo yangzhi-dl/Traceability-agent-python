@@ -40,14 +40,14 @@ public class TraceWorkflow {
 
     private record Lease(RLock lock, long owner) { }
 
-    /** Explicit owner ID remains stable across Reactor scheduler/thread changes. */
+    /** 显式持有者 ID，避免 Reactor 切换调度线程后线程 ID 变化导致解锁失败。 */
     private <T> Mono<T> withLock(String tenant, String order, Supplier<Mono<T>> work) {
         return Mono.defer(() -> {
             RLock lock = redis.getLock("trace:gateway:" + tenant + ":" + order);
             long owner = OWNERS.incrementAndGet();
             Mono<Lease> acquire = Mono.fromCompletionStage(lock.tryLockAsync(0, -1, TimeUnit.SECONDS, owner))
                     .flatMap(ok -> ok ? Mono.just(new Lease(lock, owner)) : Mono.error(conflict("Work order is busy")));
-            // -1 lease delegates renewal to the Redisson watchdog. Cleanup runs on every terminal path.
+            // leaseTime=-1 表示续期交由 Redisson 看门狗负责；usingWhen 保证任何终止路径都会执行解锁清理。
             return Mono.usingWhen(acquire, ignored -> Mono.defer(work),
                     this::unlock, (lease, error) -> unlock(lease), this::unlock);
         });
@@ -100,7 +100,7 @@ public class TraceWorkflow {
             if (TERMINAL.contains(row.getStatus()) && "RESUME".equals(row.getLastOperation())) { return row; }
             if (!"WAITING_APPROVAL".equals(row.getStatus())) { throw conflict("No pending approval"); }
             row.setApprovalDecision(request.approved()); row.setApproverId(actor.userId());
-            return reserve(row, "RESUME", traceId); // decision committed before HTTP; retries must use same value
+            return reserve(row, "RESUME", traceId); // 审批决定先落库再发 HTTP；重试时复用同一决定，保证幂等。
         }).flatMap(row -> TERMINAL.contains(row.getStatus())
                 ? Mono.just(parse(row.getResponseJson()))
                 : invokeAndSave(row, python.resume(request, actor, traceId))));
@@ -128,8 +128,8 @@ public class TraceWorkflow {
                     return response;
                 })).onErrorResume(error -> db(() -> {
                     row.setOperationState("RETRYABLE_ERROR");
-                    // Preserve previous WAITING_APPROVAL response so the exact decision can be retried.
-                    try { cas(row); } catch (RuntimeException ignored) { /* original error remains authoritative */ }
+                    // 保留上一次 WAITING_APPROVAL 响应，便于用完全相同的决定重试。
+                    try { cas(row); } catch (RuntimeException ignored) { /* 原始异常仍是最终对外暴露的错误 */ }
                     return true;
                 }).then(Mono.error(error)));
     }
@@ -145,7 +145,7 @@ public class TraceWorkflow {
         }
     }
 
-    /** Atomic version predicate protects against stale writers after lock/network failure. */
+    /** 基于版本号的 CAS 谓词，防止锁或网络故障后过期写入覆盖新数据。 */
     private void cas(WorkOrderEntity row) {
         long previous = row.getVersion();
         row.setVersion(previous + 1); row.setUpdatedAt(LocalDateTime.now());
@@ -157,13 +157,13 @@ public class TraceWorkflow {
     public Mono<JsonNode> find(String order, Actor actor) {
         return db(() -> {
             WorkOrderEntity row = require(actor.tenantId(), order);
-            owner(row, actor); // authorize against database before consulting the cache
+            owner(row, actor); // 先按数据库记录做归属鉴权，再查缓存
             if (row.getResponseJson() == null) { throw conflict("Diagnosis has no result yet; retry original request"); }
             try {
                 RBucket<String> bucket = redis.getBucket(cacheKey(row), StringCodec.INSTANCE);
                 String cached = bucket.get();
                 if (cached != null) { return parse(cached); }
-            } catch (RuntimeException ignored) { /* versioned cache is optional */ }
+            } catch (RuntimeException ignored) { /* 版本化缓存属于可选项，读取失败可忽略 */ }
             return parse(row.getResponseJson());
         });
     }
@@ -188,7 +188,7 @@ public class TraceWorkflow {
         try {
             RBucket<String> bucket = redis.getBucket(cacheKey(row), StringCodec.INSTANCE);
             bucket.set(value, Duration.ofSeconds(60));
-        } catch (RuntimeException ignored) { /* Redis cache loss never invalidates an already committed report. */ }
+        } catch (RuntimeException ignored) { /* Redis 缓存丢失不影响已落库的报告 */ }
     }
 
     private String cacheKey(WorkOrderEntity row) {

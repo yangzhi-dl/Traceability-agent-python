@@ -1,4 +1,4 @@
-"""Wire contracts. Numeric observations keep source IDs, units and model identity."""
+"""传输层契约。数值观察记录保留来源 ID、单位与型号标识。"""
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -62,7 +62,7 @@ class RootCause8DReport(StrictModel):
     measurements: list[Measurement]
     evidence_ids: list[str]
     limitations: list[str] = Field(min_length=1)
-    # Report is a diagnosis draft: an approved stock freeze does not prove CAPA efficacy.
+    # 报告为诊断草稿：已批准的库存冻结并不能证明 CAPA 措施有效。
     report_status: Literal['DRAFT_PENDING_VALIDATION'] = 'DRAFT_PENDING_VALIDATION'
 
 
@@ -94,7 +94,7 @@ class TraceResponse(StrictModel):
 
 
 class GraderScore(StrictModel):
-    # Evidence-based grading rationale, not private model chain of thought.
+    # 基于证据的评分依据，而非模型私有的思维链。
     reason: str = Field(min_length=1, description='具体证据、规则命中和扣分说明；不要输出隐含思维链')
     score: Literal[0, 1]
 

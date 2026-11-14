@@ -1,7 +1,7 @@
-"""Run from fullstack_agent_mvp: python -m python_service.evals.run_eval --mode mock.
+"""从 fullstack_agent_mvp 目录运行：python -m python_service.evals.run_eval --mode mock。
 
-Each trial owns a fresh service/checkpointer and unique work order. The simulated
-baseline is an ablation of repair behavior, not a historical production baseline.
+每次试验使用全新的服务/检查点与唯一工单。模拟的 baseline 是对纠错行为的
+消融对照，而非历史生产基线。
 """
 import argparse
 import json
@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def metrics(successes: list[list[bool]]) -> dict[str, float]:
     if not successes or any(len(row) != 3 for row in successes):
         raise ValueError('Pass^3 requires exactly three independent trials per sample')
-    # Pass^1 equals average per-run success, not only the first lucky trial.
+    # Pass^1 等于每次运行的平均成功率，而非仅取第一次侥幸通过。
     return {'pass1': sum(sum(row) for row in successes) / (3 * len(successes)),
             'pass3': sum(all(row) for row in successes) / len(successes),
             'claw_pass_hat3': statistics.mean((sum(row) / 3) ** 3 for row in successes)}
@@ -36,7 +36,7 @@ def golden_errors(sample, result, mode):
     if result.report:
         cause = result.report.d4_root_cause
         for field in sample.get('expected_anomalies', []):
-            # Mock reports use field names; real model is checked semantically by judge.
+            # Mock 报告使用字段名；真实模型由裁判做语义校验。
             if mode == 'mock' and field not in cause:
                 errors.append(f'golden root cause omits {field}')
         if sample['id'] in {'G02', 'G07'} and result.report.factors['Material'].status != 'NORMAL':
@@ -80,7 +80,7 @@ def run(mode='auto', policy='optimized', output_dir: Path | None = None):
             except Exception as exc:
                 passed = False
                 results.append({'sample': sample['id'], 'trial': trial + 1, 'passed': False,
-                                'error': type(exc).__name__})  # no HTTP response or secret in logs
+                                'error': type(exc).__name__})  # 日志中不记录 HTTP 响应或密钥
             finally:
                 service.close()
             group.append(passed)

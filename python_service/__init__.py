@@ -1,1 +1,1 @@
-"""Independent manufacturing traceability demonstration."""
+"""独立的制造业不良品根因追溯演示工程。"""

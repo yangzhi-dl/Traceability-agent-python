@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
-/** MySQL is the business authority; Redis is only the mutex/cache/checkpoint store. */
+/** MySQL 是业务唯一权威数据源；Redis 仅作互斥锁、缓存与检查点存储。 */
 @TableName("defect_work_order")
 public class WorkOrderEntity {
     @TableId(type = IdType.AUTO)

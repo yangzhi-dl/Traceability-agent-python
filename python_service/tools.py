@@ -1,4 +1,4 @@
-"""Five typed industrial tools. Real retrieval is opt-in; the ERP is always simulated."""
+"""五个带类型的工业工具。真实检索为可选接入；ERP 始终为模拟实现。"""
 import hashlib
 import math
 import os
@@ -21,10 +21,10 @@ def tokens(text: str) -> list[str]:
 
 
 class HybridRetriever:
-    """BM25 + vector recall -> RRF -> rerank, enforcing model filters at every stage.
+    """BM25 + 向量召回 -> RRF 融合 -> 重排序，全程强制型号过滤。
 
-    mock: local token cosine / lexical reranker, explicitly NOT Milvus or BGE.
-    real: locally installed embedding/BGE models and an existing Milvus collection.
+    mock：本地词元余弦 / 词汇重排器，明确不依赖 Milvus 或 BGE。
+    real：本地安装的 embedding/BGE 模型与已有的 Milvus 集合。
     """
     def __init__(self, backend: str | None = None):
         self.backend = backend or os.getenv('RAG_BACKEND', 'mock')
@@ -35,8 +35,8 @@ class HybridRetriever:
             self._init_real_backend()
 
     def _init_real_backend(self):
-        # Optional heavy deps (pymilvus / sentence-transformers) are imported here so
-        # mock mode never requires them. Install via requirements-integrations.txt.
+        # 可选的重型依赖（pymilvus / sentence-transformers）在此延迟导入，
+        # 使 mock 模式无需安装它们。通过 requirements-integrations.txt 安装。
         try:
             from pymilvus import MilvusClient
             from sentence_transformers import CrossEncoder, SentenceTransformer
@@ -45,7 +45,7 @@ class HybridRetriever:
                 'RAG_BACKEND=real requires pymilvus and sentence-transformers; '
                 'install with: uv pip install -r requirements-integrations.txt'
             ) from exc
-        # Require local model directories: running a request never downloads a model.
+        # 强制要求本地模型目录：处理请求时绝不联网下载模型。
         self.embedding = SentenceTransformer(os.environ['EMBEDDING_MODEL_PATH'], local_files_only=True)
         self.reranker = CrossEncoder(os.environ['BGE_RERANKER_PATH'], local_files_only=True)
         self.milvus = MilvusClient(uri=os.environ['MILVUS_URI'], token=os.getenv('MILVUS_TOKEN', ''))
@@ -120,8 +120,8 @@ def lookup(batch_no: str) -> dict | None:
 
 @tool(args_schema=BatchArgs)
 def query_defect_inspection(batch_no: str) -> dict:
-    """First inspect MES defect, exact model, production window and Man/Environment facts.
-    A diagnosis is NOT complete after this tool: inspect Material, Machine and Method separately.
+    """首先查询 MES 的缺陷、精确型号、生产时间窗及人/环境事实。
+    仅调用本工具后诊断尚未完成：还需分别排查物料、机台与方法。
     """
     c = lookup(batch_no)
     if not c:
@@ -133,8 +133,8 @@ def query_defect_inspection(batch_no: str) -> dict:
 
 @tool(args_schema=BatchArgs)
 def trace_erp_work_order_bom(batch_no: str) -> dict:
-    """Material dimension: ERP work order -> BOM -> raw batch -> moisture -> supplier.
-    Must run even when machine temperature is abnormal; causes can coexist.
+    """物料维度：ERP 工单 -> BOM -> 原料批次 -> 含水率 -> 供应商。
+    即使机台温度异常也必须执行；多种原因可能同时存在。
     """
     c = lookup(batch_no)
     if not c:
@@ -145,8 +145,8 @@ def trace_erp_work_order_bom(batch_no: str) -> dict:
 
 @tool(args_schema=TelemetryArgs)
 def query_equipment_telemetry(batch_no: str, start_time: str, end_time: str) -> dict:
-    """Machine dimension: query telemetry strictly within the MES production time window.
-    Temperature does not rule out material moisture; both tools are mandatory.
+    """机台维度：严格在 MES 生产时间窗内查询遥测数据。
+    温度异常不能排除物料含水率问题；两个工具均为必查项。
     """
     c = lookup(batch_no)
     if not c:
@@ -165,8 +165,8 @@ def query_equipment_telemetry(batch_no: str, start_time: str, end_time: str) -> 
 
 @tool(args_schema=SopArgs)
 def retrieve_sop_and_8d_cases(model_code: str, query: str) -> dict:
-    """Method dimension: exact-model BM25 + vector recall + rerank for SOP and prior 8D.
-    Call after ERP and sensors, compare their measured parameters with this model's limits.
+    """方法维度：同型号 BM25 + 向量召回 + 重排序，检索 SOP 与历史 8D。
+    在 ERP 与传感器之后调用，将其实测参数与本型号标准限值对照。
     """
     docs = HybridRetriever().search(model_code, query)
     return observation('FOUND' if docs else 'EMPTY', 'SOP', model_code,
@@ -175,16 +175,16 @@ def retrieve_sop_and_8d_cases(model_code: str, query: str) -> dict:
 
 @tool(args_schema=FreezeArgs)
 def freeze_erp_stock_batch(batch_no: str, state: Annotated[dict, InjectedState]) -> dict:
-    """HIGH RISK: freeze approved ERP raw batch and create an idempotent CAPA order.
-    Only the post-interrupt ToolNode exposes this tool. Identity/state are injected, never model arguments.
+    """高风险操作：冻结已批准的 ERP 原料批次并创建幂等的 CAPA 单。
+    仅 interrupt 之后的 ToolNode 暴露本工具。身份/状态由系统注入，绝不来自模型参数。
     """
     decision = state.get('approval', {})
     raw = state.get('evidence', {}).get('trace_erp_work_order_bom', {}).get('data', {}).get('raw_batch')
     if (decision.get('approved') is not True or decision.get('role') != 'supervisor'
             or decision.get('approval_id') != state.get('approval_id') or batch_no != raw):
         return observation('DENIED', 'ERP_WRITE', batch_no, message='Approval binding or RBAC failed')
-    # Mock ERP uses a deterministic operation ID. A real ERP adapter must enforce this
-    # idempotency key in its own transaction, including both freeze and CAPA creation.
+    # Mock ERP 使用确定性的操作 ID。真实 ERP 适配器必须在自身事务中强制该幂等键，
+    # 覆盖冻结与 CAPA 创建两个动作。
     key = f'{state["thread_id"]}:{state["approval_id"]}:{batch_no}'
     operation_id = hashlib.sha256(key.encode()).hexdigest()[:20]
     return observation('FOUND', 'ERP_WRITE', operation_id,

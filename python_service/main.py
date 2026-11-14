@@ -1,4 +1,4 @@
-"""HTTP boundary. Demo mode is local-only; production requires a gateway secret."""
+"""HTTP 边界。演示模式仅限本地；生产环境必须配置网关密钥。"""
 import hmac
 import os
 from contextlib import asynccontextmanager
@@ -22,7 +22,7 @@ def trusted_identity(
     secret = os.getenv('GATEWAY_TOKEN')
     if secret and (not x_gateway_token or not hmac.compare_digest(secret, x_gateway_token)):
         raise HTTPException(401, 'Invalid gateway authentication')
-    # No secret is an explicitly documented localhost demo, never an authenticated service.
+    # 未配置密钥时即为显式声明的 localhost 演示，绝不视为已认证服务。
     try:
         return Identity(tenant_id=x_tenant_id, user_id=x_user_id, role=x_user_role, trace_id=x_trace_id)
     except ValidationError:
@@ -55,8 +55,8 @@ def create_app(service: TraceService | None = None) -> FastAPI:
 
     @app.post('/api/v1/trace/diagnose/stream')
     def diagnose_stream(body: DiagnoseRequest, identity: Annotated[Identity, Depends(trusted_identity)]):
-        # One terminal SSE event; this is transport interoperability, not token streaming.
-        # Invoke before response headers so auth/conflict errors retain their HTTP status.
+        # 只发一个终结性的 SSE 事件，用于验证传输层互通，而非逐 token 流式输出。
+        # 在响应头发出前先同步执行，使鉴权/冲突错误仍保留正确的 HTTP 状态码。
         result = app.state.service.diagnose(body, identity)
         return StreamingResponse(iter([f'event: result\ndata: {result.model_dump_json()}\n\n']), media_type='text/event-stream')
 

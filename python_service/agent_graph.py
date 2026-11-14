@@ -1,7 +1,7 @@
-"""Real LangGraph Actor -> ToolNode -> Evaluator -> Reflector, with bounded retries.
+"""真实的 LangGraph Actor -> ToolNode -> Evaluator -> Reflector 流程，带有限重试。
 
-Only model behavior is simulated in mock mode. Tools, checkpointing, conditional
-edges and human interrupts use the same runtime as the LLM path.
+mock 模式下仅模拟模型行为。工具、检查点、条件边与人机中断
+均使用与 LLM 路径相同的运行时。
 """
 import json
 import os
@@ -46,7 +46,7 @@ class TraceState(TypedDict, total=False):
 
 
 def model(mode: str, judge: bool = False):
-    """No API request or key access in mock. Never silently mask LLM failures."""
+    """mock 模式下不发起任何 API 请求或访问密钥。绝不静默掩盖 LLM 失败。"""
     if mode == 'mock':
         return None
     from langchain_openai import ChatOpenAI
@@ -64,7 +64,7 @@ def selected_mode(mode: str) -> str:
 
 
 def tool_error(exc: Exception) -> str:
-    # Error strings are actionable for the simulator, with no credentials/HTTP bodies.
+    # 错误信息对模拟器可操作，且不包含凭证或 HTTP 响应体。
     code = 'TIME_WINDOW' if 'start_time' in str(exc) or 'end_time' in str(exc) or 'TIME_WINDOW' in str(exc) else 'TOOL_ARGUMENT_OR_BACKEND'
     return ToolObservation(outcome='ERROR', source='TOOL_RUNTIME', evidence_id='runtime:error',
                            message=f'{code}: check batch format and MES time window').model_dump_json()
@@ -88,7 +88,7 @@ def mock_actor(state: TraceState) -> AIMessage:
     missing = [name for name in REQUIRED_TOOLS if name not in evidence]
     if not missing:
         return AIMessage(content='证据已覆盖，提交报告。')
-    # Reproducible fault injection deliberately causes a premature answer or bad tool input.
+    # 可复现的故障注入，故意制造提前作答或错误的工具入参。
     if fault == 'skip_material' and 'query_equipment_telemetry' in evidence and not repaired:
         return AIMessage(content='看到机台异常，尝试提前结束。')
     name = missing[0]
@@ -139,7 +139,7 @@ def build_graph(checkpointer, mode: str = 'mock'):
         try:
             message = (actor_prompt | bound).invoke({'memory': state['episodic_memory'],
                 'request': state['request'], 'messages': state['messages']}) if bound else mock_actor(state)
-            # No raw model reasoning is stored; only the structured tool decision is retained.
+            # 不存储模型原始推理，仅保留结构化的工具决策。
             message = AIMessage(content='' if message.tool_calls else 'Actor requested completion',
                                 tool_calls=message.tool_calls[:1])
         except Exception:
@@ -171,7 +171,7 @@ def build_graph(checkpointer, mode: str = 'mock'):
         if not missing:
             route = 'approval' if state['request']['request_freeze'] else 'report'
         elif failure or not isinstance(last, ToolMessage):
-            # Completion attempts with incomplete evidence are evaluator failures.
+            # 证据不全时尝试完成，会被评估器判定为失败。
             route = 'reflect' if state['retries'] < MAX_RETRIES else 'partial'
         else:
             route = 'actor'
@@ -191,14 +191,14 @@ def build_graph(checkpointer, mode: str = 'mock'):
                 reflection = (prompt | llm).invoke({'feedback': guidance}).content
                 guidance = str(reflection)[:1200]
             except Exception:
-                pass  # Deterministic corrective advice is valid even when reflection LLM fails.
+                pass  # 即使反思 LLM 失败，确定性的纠错建议仍然有效。
         return {'episodic_memory': [*state['episodic_memory'], guidance], 'retries': state['retries'] + 1}
 
     def approval(state):
         if state['identity']['role'] not in {'quality_engineer', 'supervisor'}:
             return {'status': 'DENIED', 'route': 'end', 'stop_reason': 'FREEZE_RBAC_DENIED'}
         raw = state['evidence']['trace_erp_work_order_bom']['data']['raw_batch']
-        # No side effects before interrupt: this node starts again on resume.
+        # interrupt 之前不产生副作用：恢复执行时该节点会从头再跑一次。
         decision = interrupt({'approval_id': state['approval_id'], 'thread_id': state['thread_id'],
                               'action': 'freeze_erp_stock_batch', 'raw_batch': raw})
         if decision.get('approval_id') != state['approval_id'] or decision.get('role') != 'supervisor':
@@ -231,7 +231,7 @@ def build_graph(checkpointer, mode: str = 'mock'):
                                              'freeze_result': state.get('freeze_result')}, ensure_ascii=False)})
             else:
                 draft = build_report(state)
-            # Reuse deterministic grounding checks as a runtime gate, never a judge LLM here.
+            # 复用确定性落地校验作为运行时闸门，此处绝不使用裁判 LLM。
             from .evals.graders import validate_report
             errors = validate_report(draft, state['trajectory'], state['request']['work_order_id'])
             if errors:
@@ -263,5 +263,5 @@ def build_graph(checkpointer, mode: str = 'mock'):
     return graph.compile(checkpointer=checkpointer)
 
 
-# Public facade kept here for the requested learning path; storage/auth orchestration is separate.
+# 为满足约定的学习路径，将公共门面保留在此；存储/鉴权编排在单独模块中。
 from .runtime import TraceService  # noqa: E402,F401

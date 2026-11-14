@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** All identity headers are derived from a verified JWT, never forwarded from user headers. */
+/** 所有身份头均来自已验证的 JWT，绝不从用户请求头直接透传。 */
 @Component
 public class PythonAgentWebClient {
     private final WebClient client;
@@ -44,14 +44,14 @@ public class PythonAgentWebClient {
     }
 
     private Mono<JsonNode> invoke(String path, Object body, Actor actor, String traceId) {
-        // No transparent retry of a write. The caller retries the same order/approval ID.
+        // 写操作不做透明重试；由调用方用相同的工单/审批 ID 重试。
         return request(path, actor, traceId).bodyValue(body).retrieve()
                 .onStatus(s -> s.isError(), response -> response.releaseBody().thenReturn(
                         new ResponseStatusException(response.statusCode(), "Python trace request failed")))
                 .bodyToMono(JsonNode.class).timeout(Duration.ofMinutes(15));
     }
 
-    /** Python currently emits one terminal result event, not a token stream. */
+    /** Python 目前只发一个终结性结果事件，而非逐 token 流。 */
     public Flux<ServerSentEvent<JsonNode>> diagnoseEvents(
             DefectTraceController.DiagnoseRequest body, Actor actor, String traceId) {
         return request("/api/v1/trace/diagnose/stream", actor, traceId)

@@ -1,1 +1,1 @@
-"""Reference-inspired deterministic trajectory and structured semantic evaluation."""
+"""借鉴参考实现：确定性轨迹评测与结构化语义评测。"""

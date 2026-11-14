@@ -1,4 +1,4 @@
-"""Synthetic teaching data; no actual ERP/customer records are used."""
+"""合成教学数据；不包含任何真实 ERP 或客户记录。"""
 from copy import deepcopy
 
 START = '2026-10-01T08:00:00+08:00'

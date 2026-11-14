@@ -1,4 +1,4 @@
-"""Evidence-grounded deterministic report used only by the offline teaching mode."""
+"""基于证据的确定性报告构造，仅用于离线教学模式。"""
 from .schemas import FactorFinding, Measurement, RootCause8DReport
 
 UNITS = {'moisture_pct': '%', 'temperature_c': '°C', 'pressure_mpa': 'MPa', 'rpm': 'rpm'}

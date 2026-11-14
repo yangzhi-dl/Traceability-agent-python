@@ -1,4 +1,4 @@
-"""Service facade: trusted identity, checkpoint ownership, request/approval replay."""
+"""服务门面：可信身份、检查点归属、请求/审批重放。"""
 from contextlib import ExitStack, contextmanager
 from threading import Lock, RLock
 from uuid import uuid4
@@ -25,7 +25,7 @@ class TraceService:
                     'install with: uv pip install -r requirements-integrations.txt'
                 ) from exc
             saver = self.stack.enter_context(RedisSaver.from_conn_string(redis_url))
-            saver.setup()  # Redis Stack / Redis 8 with JSON + Search, not plain Redis 7.
+            saver.setup()  # 需 Redis Stack / Redis 8（含 JSON + Search 模块），而非普通 Redis 7。
             self.redis = Redis.from_url(redis_url)
             self.stack.callback(self.redis.close)
         else:
@@ -44,7 +44,7 @@ class TraceService:
     @contextmanager
     def locked(self, thread: str):
         if self.redis:
-            # This serializes direct Python requests too; distinct prefix from gateway locks.
+            # 这也会串行化直接调用 Python 服务的请求；与网关锁使用不同的键前缀。
             mutex = self.redis.lock(f'trace:python:{thread}', timeout=1200, blocking=False)
         else:
             with self.lock_guard:
@@ -78,7 +78,7 @@ class TraceService:
                     raise ServiceError(403, 'Work order belongs to another user')
                 if existing.values['request'] != request.model_dump():
                     raise ServiceError(409, 'Work order already exists with different parameters')
-                # Pending interrupts must be resumed explicitly; failed non-interrupt nodes can replay.
+                # 待处理的挂起中断必须显式恢复；失败的非中断节点可以直接重放。
                 if existing.next and not any(t.interrupts for t in existing.tasks):
                     self.graph.invoke(None, config)
                 return self.response(config)
@@ -106,7 +106,7 @@ class TraceService:
                 if previous['approved'] != request.approved:
                     raise ServiceError(409, 'Approval decision is immutable')
                 if snapshot.next:
-                    self.graph.invoke(None, config)  # recover interrupted transport/crash after approval
+                    self.graph.invoke(None, config)  # 审批后恢复因传输中断/崩溃而挂起的执行
                 return self.response(config)
             if not any(t.interrupts for t in snapshot.tasks):
                 raise ServiceError(409, 'No pending approval')
