@@ -1,7 +1,7 @@
 """传输层契约。数值观察记录保留来源 ID、单位与型号标识。"""
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 Role = Literal['viewer', 'quality_engineer', 'supervisor']
 Status = Literal['COMPLETED', 'WAITING_APPROVAL', 'PARTIAL', 'DENIED', 'REJECTED']
@@ -83,6 +83,46 @@ class ToolTrace(StrictModel):
     observation: ToolObservation
 
 
+class WebSearchRequest(StrictModel):
+    """只允许公开技术关键词，禁止附带工单、批次或企业内部数据。"""
+    model_config = ConfigDict(extra='forbid', strict=True)
+    query: str = Field(min_length=1, max_length=500)
+
+    @field_validator('query')
+    @classmethod
+    def nonblank_query(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError('搜索词不能为空')
+        return value.strip()
+
+
+class WebReference(StrictModel):
+    """外部公开资料不是工厂实测证据，来源 URL 与摘要同时保留。"""
+    model_config = ConfigDict(extra='forbid', strict=True)
+    title: str = Field(min_length=1, max_length=1000)
+    url: HttpUrl
+    summary: str = Field(min_length=1, max_length=4000)
+
+
+class WebSearchResult(WebSearchRequest):
+    source: Literal['TAVILY_MCP'] = 'TAVILY_MCP'
+    outcome: Literal['FOUND', 'EMPTY', 'ERROR']
+    reason: Literal['OK', 'NO_RESULTS', 'NOT_CONFIGURED', 'MISSING_DEPENDENCY',
+                    'MCP_UNAVAILABLE', 'INVALID_RESPONSE', 'SEARCH_LIMIT_REACHED', 'TIMEOUT']
+    references: list[WebReference] = Field(default_factory=list, max_length=3)
+
+    @model_validator(mode='after')
+    def consistent_outcome(self):
+        if self.outcome == 'FOUND':
+            if not self.references or self.reason != 'OK':
+                raise ValueError('成功搜索必须包含来源，且 reason 为 OK')
+        elif self.references or (self.outcome == 'EMPTY' and self.reason != 'NO_RESULTS'):
+            raise ValueError('空结果或失败不可携带成功引用')
+        elif self.outcome == 'ERROR' and self.reason in {'OK', 'NO_RESULTS'}:
+            raise ValueError('失败结果必须提供失败原因')
+        return self
+
+
 class TraceResponse(StrictModel):
     thread_id: str
     status: Status
@@ -90,6 +130,7 @@ class TraceResponse(StrictModel):
     approval_id: str | None = None
     trajectory: list[ToolTrace] = Field(default_factory=list)
     episodic_memory: list[str] = Field(default_factory=list)
+    web_references: list[WebSearchResult] = Field(default_factory=list)
     stop_reason: str
 
 

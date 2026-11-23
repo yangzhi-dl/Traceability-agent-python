@@ -225,7 +225,10 @@ def test_llm_graph_branch_uses_bound_tools_and_structured_output_without_network
 
     class ScriptedProvider:
         def bind_tools(self, tools, parallel_tool_calls):
-            assert not parallel_tool_calls and len(tools) == 4
+            # 四个必查工具保持原样，另绑定一个可选搜索工具。
+            from python_service.tools import REQUIRED_TOOLS
+            assert not parallel_tool_calls
+            assert [tool.name for tool in tools] == [*REQUIRED_TOOLS, 'web_search']
             return RunnableLambda(lambda prompt: agent_graph.call_message(*next(calls)))
 
         def with_structured_output(self, schema):

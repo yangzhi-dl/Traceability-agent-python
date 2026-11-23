@@ -66,6 +66,7 @@ class TraceService:
             approval_id=state['approval_id'] if waiting or state.get('approval') else None,
             report=state.get('report'), trajectory=state.get('trajectory', []),
             episodic_memory=state.get('episodic_memory', []),
+            web_references=state.get('web_references', []),
             stop_reason='HUMAN_APPROVAL_REQUIRED' if waiting else state.get('stop_reason', 'INCOMPLETE'))
 
     def diagnose(self, request: DiagnoseRequest, identity: Identity, *, fault: str = 'none', policy: str = 'optimized') -> TraceResponse:
@@ -83,7 +84,7 @@ class TraceService:
                     self.graph.invoke(None, config)
                 return self.response(config)
             initial = {'messages': [], 'thread_id': thread, 'request': request.model_dump(),
-                       'identity': identity.model_dump(), 'evidence': {}, 'trajectory': [],
+                       'identity': identity.model_dump(), 'evidence': {}, 'trajectory': [], 'web_references': [],
                        'episodic_memory': [], 'retries': 0, 'actor_turns': 0, 'fault': fault,
                        'policy': policy, 'approval_id': str(uuid4()), 'report': None,
                        'stop_reason': 'STARTED'}

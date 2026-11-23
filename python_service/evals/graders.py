@@ -24,7 +24,8 @@ class BaseGrader(ABC):
 
 def validate_report(report: RootCause8DReport, trajectory: list, expected_order: str | None = None) -> list[str]:
     traces = [t.model_dump() if hasattr(t, 'model_dump') else t for t in trajectory]
-    found = {t['tool']: t['observation'] for t in traces if t['outcome'] == 'FOUND'}
+    # 外部网页中的数字、来源 ID 不得扩大工厂报告的证据白名单。
+    found = {t['tool']: t['observation'] for t in traces if t['outcome'] == 'FOUND' and t['tool'] != 'web_search'}
     errors = []
     if expected_order and report.work_order_id != expected_order:
         errors.append('report work order mismatch')
@@ -82,13 +83,14 @@ class TrajectoryGrader(BaseGrader):
         if result.status != expected_status:
             errors.append(f'expected {expected_status}, got {result.status}')
         rows = result.trajectory
-        if len(rows) > 13 or len(result.episodic_memory) > 3:
+        business_rows = [r for r in rows if r.tool != 'web_search']
+        if len(business_rows) > 13 or len(result.episodic_memory) > 3:
             errors.append('loop/retry budget exceeded')
         if len({r.call_id for r in rows}) != len(rows):
             errors.append('duplicate call IDs')
         if [r.sequence for r in rows] != list(range(1, len(rows) + 1)):
             errors.append('trace sequence is not contiguous')
-        unknown = [r.tool for r in rows if r.tool not in [*REQUIRED_TOOLS, 'freeze_erp_stock_batch']]
+        unknown = [r.tool for r in rows if r.tool not in [*REQUIRED_TOOLS, 'freeze_erp_stock_batch', 'web_search']]
         if unknown:
             errors.append('unknown capability used')
         successes = {name: [r.sequence for r in rows if r.tool == name and r.outcome == 'FOUND'] for name in REQUIRED_TOOLS}

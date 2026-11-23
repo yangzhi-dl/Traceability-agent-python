@@ -1,5 +1,40 @@
 # 独立全栈不良品追溯 MVP
 
+## 可选 Tavily MCP 搜索
+
+新增 `python_service/web_search.py`，经官方 `langchain-mcp-adapters.load_mcp_tools` 和 MCP SDK stdio 客户端，启动固定版本 `npx -y tavily-mcp@0.2.22`。只选择 `tavily_search`/`tavily-search`，不暴露爬取、提取等其他能力。
+
+- `READ_TOOLS` 和 `REQUIRED_TOOLS` 仍只有原四项；Actor 与只读 ToolNode 额外绑定 `web_search`。
+- 未设置 `TAVILY_API_KEY` 时不启动子进程、不访问网络，返回 `ERROR / NOT_CONFIGURED`。依赖缺失、超时或服务失败也返回脱敏降级结果。
+- `mock_actor` 不使用搜索，即使设置 Key，默认 mock 诊断仍保持确定性。
+- 搜索是可选背景资料；新字段 `web_references` 保存查询词、状态、标题、URL 和摘要，并在 `TraceResponse` 返回。失败尝试也保留状态用于审计。
+- 新请求、结果与引用均经过 Pydantic v2 校验；Graph 检查点仅保存 `model_dump(mode="json")` 的快照，读取时重新校验。
+- 搜索结果不进入 `evidence`、`evidence_error` 或必查顺序；搜索失败不消耗反思重试次数。网页数字不参与工厂报告的数字白名单。报告仍只以内部证据生成，外部参考单独返回。
+- 每个诊断线程至多尝试一次搜索；再次调用仅返回 `SEARCH_LIMIT_REACHED`，不再访问 Tavily。恢复过程中若外部请求已完成但检查点尚未保存，仍存在重放窗口；本实现不宣称外部 API exactly-once。
+- 只发送公开型号、材料或标准关键词。不要把内部工单、批次、人员、供应商或实测数据放入查询词；网页内容是不可信数据，不是操作指令。
+
+在已经安装主依赖的项目中，使用**系统 Python 的 pip**给 `.venv` 安装可选 MCP 依赖，不要求 `.venv` 自带 pip：
+
+```powershell
+python -m pip --python .venv\Scripts\python.exe install langchain-mcp-adapters==0.2.2 mcp==1.30.0 -c requirements.lock.txt
+```
+
+这两项依赖只写入 `requirements-integrations.txt`，没有加入主依赖。不要为了只安装 MCP 而一次性安装全部可选重型 RAG 依赖。运行 stdio Server 还需要 Node.js/npx；首次启动可能需要下载 npm 包，45 秒超时会降级为 `TIMEOUT`，可先预热 npm 缓存。
+
+在本机安全设置环境变量 `TAVILY_API_KEY`，不要将真实 Key 写入源码、命令记录或聊天。服务必须继承该环境变量。只有真实 LLM 模式会自主选择搜索；该模式还需要原来的模型配置。
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest python_service/tests -q
+.\.venv\Scripts\python.exe -m pytest tests_mcp -q
+.\.venv\Scripts\python.exe scripts\verify_tavily.py
+```
+
+最后一条是显式真实联网验收，会消耗一次 Tavily 搜索调用：固定一条公开查询，经实际 Graph / ToolNode / MCP 写入 `web_references`，检查四个必查证据仍完整。没有 Key 时退出码为 77（跳过），不是通过。普通 `tests_mcp` 只使用离线夹具；其中 stdio 用例确实运行本地 MCP Server 和官方适配器，但不是 Tavily 云端测试。
+
+本次仅更新原契约测试中“绑定工具总数为 4”的断言，改为检查“四个原必查工具 + web_search”；原有 20 个测试没有删减。审批、冻结及主工具文件不变。
+
+参考：[LangChain load_mcp_tools 接口](https://reference.langchain.com/python/langchain-mcp-adapters/tools/load_mcp_tools)、[Tavily 官方 MCP Server](https://github.com/tavily-ai/tavily-mcp)。以本次安装的适配器 0.2.2、MCP 1.30.0 与 npm 0.2.22 源码核验为准，不依赖未固定的 latest。
+
 本目录展示：质检异常 → ERP 物料/BOM + 机台传感器 → 同型号 SOP → 8D 诊断草稿；错误或证据不足触发最多三次 Reflexion；冻结原料批次通过真实 LangGraph `interrupt()` 等待主管批准。
 
 旧 AgentScope 工程与 `ref_repos/` 保持只读。新项目使用真实 FastAPI/Pydantic/LangChain/LangGraph；默认把模型决策、外部工业系统和检索服务替换为明确标注的本地模拟。**安装 Python 包后，不需要任何外部服务或 API Key 就能运行。** 这不表示 Python 第三方包零依赖。
