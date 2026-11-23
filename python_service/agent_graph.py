@@ -4,7 +4,6 @@ mock 模式下仅模拟模型行为。工具、检查点、条件边与人机中
 均使用与 LLM 路径相同的运行时。
 """
 import json
-import os
 import re
 from typing import Annotated, Any, TypedDict
 from uuid import uuid4
@@ -17,6 +16,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt
 from pydantic import TypeAdapter
 
+from .config import settings
 from .reporting import build_report
 from .schemas import RootCause8DReport, ToolObservation, ToolTrace, WebSearchRequest, WebSearchResult
 from .tools import READ_TOOLS, REQUIRED_TOOLS, freeze_erp_stock_batch
@@ -54,15 +54,18 @@ def model(mode: str, judge: bool = False):
     if mode == 'mock':
         return None
     from langchain_openai import ChatOpenAI
-    return ChatOpenAI(model=os.getenv('JUDGE_MODEL' if judge else 'OPENAI_MODEL', 'gpt-4o-mini'),
+    model_name = (settings.judge_model or settings.openai_model) if judge else settings.openai_model
+    return ChatOpenAI(model=model_name,
+                      base_url=settings.openai_base_url or None,
+                      api_key=settings.openai_api_key,
                       temperature=0.1, timeout=40, max_retries=0)
 
 
 def selected_mode(mode: str) -> str:
     if mode not in {'auto', 'mock', 'llm'}:
         raise ValueError('mode must be auto, mock or llm')
-    actual = ('llm' if os.getenv('OPENAI_API_KEY') else 'mock') if mode == 'auto' else mode
-    if actual == 'llm' and not os.getenv('OPENAI_API_KEY'):
+    actual = ('llm' if settings.openai_api_key else 'mock') if mode == 'auto' else mode
+    if actual == 'llm' and not settings.openai_api_key:
         raise ValueError('LLM mode requires OPENAI_API_KEY')
     return actual
 

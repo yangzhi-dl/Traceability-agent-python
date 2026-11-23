@@ -12,6 +12,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
+from .config import settings
 from .schemas import WebReference, WebSearchRequest, WebSearchResult
 
 if TYPE_CHECKING:
@@ -111,7 +112,7 @@ def _server_parameters(cwd: str) -> 'StdioServerParameters':
     if not command:
         raise FileNotFoundError('需要安装 Node.js / npx')
     return StdioServerParameters(command=command, args=['-y', TAVILY_MCP_PACKAGE], cwd=cwd,
-                                 env={'TAVILY_API_KEY': os.environ['TAVILY_API_KEY'], 'NO_COLOR': '1'})
+                                 env={'TAVILY_API_KEY': settings.tavily_api_key, 'NO_COLOR': '1'})
 
 
 async def _mcp_search(request: WebSearchRequest) -> ToolMessage:
@@ -137,7 +138,7 @@ async def _mcp_search(request: WebSearchRequest) -> ToolMessage:
 
 
 async def search_public(request: WebSearchRequest) -> WebSearchResult:
-    if not os.getenv('TAVILY_API_KEY', '').strip():
+    if not settings.tavily_api_key.strip():
         return WebSearchResult(query=request.query, outcome='ERROR', reason='NOT_CONFIGURED')
     try:
         reply = await asyncio.wait_for(_mcp_search(request), timeout=SEARCH_TIMEOUT_SECONDS)

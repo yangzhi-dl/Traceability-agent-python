@@ -12,6 +12,7 @@ from langgraph.prebuilt import InjectedState
 from pydantic import Field
 from rank_bm25 import BM25Okapi
 
+from .config import settings
 from .fixtures import SOPS, case
 from .schemas import StrictModel, ToolObservation
 
@@ -27,7 +28,7 @@ class HybridRetriever:
     real：本地安装的 embedding/BGE 模型与已有的 Milvus 集合。
     """
     def __init__(self, backend: str | None = None):
-        self.backend = backend or os.getenv('RAG_BACKEND', 'mock')
+        self.backend = backend or settings.rag_backend
         if self.backend not in {'mock', 'real'}:
             raise ValueError('RAG_BACKEND must be mock or real')
         self.documents = SOPS

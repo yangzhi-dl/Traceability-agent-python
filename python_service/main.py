@@ -1,6 +1,5 @@
 """HTTP 边界。演示模式仅限本地；生产环境必须配置网关密钥。"""
 import hmac
-import os
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -9,6 +8,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import ValidationError
 
 from .agent_graph import TraceService
+from .config import settings
 from .schemas import DiagnoseRequest, Identity, ResumeRequest, ServiceError, TraceResponse
 
 
@@ -19,7 +19,7 @@ def trusted_identity(
     x_user_role: Annotated[str, Header()] = 'quality_engineer',
     x_trace_id: Annotated[str, Header()] = 'demo-trace',
 ) -> Identity:
-    secret = os.getenv('GATEWAY_TOKEN')
+    secret = settings.gateway_token
     if secret and (not x_gateway_token or not hmac.compare_digest(secret, x_gateway_token)):
         raise HTTPException(401, 'Invalid gateway authentication')
     # 未配置密钥时即为显式声明的 localhost 演示，绝不视为已认证服务。
@@ -32,14 +32,24 @@ def trusted_identity(
 def create_app(service: TraceService | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
-        if os.getenv('APP_ENV', 'demo') != 'demo' and not os.getenv('GATEWAY_TOKEN'):
+        if settings.app_env != 'demo' and not settings.gateway_token:
             raise RuntimeError('GATEWAY_TOKEN is required outside explicit demo mode')
-        app.state.service = service or TraceService(mode=os.getenv('AGENT_MODE', 'auto'), redis_url=os.getenv('REDIS_URL'))
+        app.state.service = service or TraceService(mode=settings.agent_mode, redis_url=settings.redis_url)
         yield
         if service is None:
             app.state.service.close()
 
     app = FastAPI(title='Independent traceability MVP', lifespan=lifespan)
+
+    # 确保 JSON 响应带 charset=utf-8：PowerShell 的 Invoke-RestMethod 在
+    # content-type 缺少 charset 时会用 ISO-8859-1 解码中文，导致乱码。
+    @app.middleware('http')
+    async def attach_utf8_charset(request, call_next):
+        response = await call_next(request)
+        content_type = response.headers.get('content-type', '')
+        if 'application/json' in content_type and 'charset' not in content_type:
+            response.headers['content-type'] = f'{content_type}; charset=utf-8'
+        return response
 
     @app.exception_handler(ServiceError)
     async def service_error(_request, exc):
