@@ -16,11 +16,11 @@
 
 ```text
 fullstack_agent_mvp/
-├── README.md                         # 项目说明、启动、审批演示及接入边界
-├── PROJECT_MAP.md                    # 本目录映射文档
-├── IMPLEMENTATION_PLAN.md            # 实施计划
-├── ULTIMATE_INTERVIEW_GUIDE.md        # 项目面试准备资料
-├── SOURCES.md                        # 来源与参考记录
+├── readme.md                         # 项目说明、启动、审批演示及接入边界
+├── project_map.md                    # 本目录映射文档
+├── implementation_plan.md            # 实施计划
+├── ultimate_interview_guide.md        # 项目面试准备资料
+├── sources.md                        # 来源与参考记录
 ├── requirements.txt                  # Python 主依赖范围
 ├── requirements.lock.txt             # 固定依赖版本快照
 ├── requirements-integrations.txt     # Redis checkpoint、Milvus、模型检索扩展依赖
@@ -44,7 +44,7 @@ fullstack_agent_mvp/
 │       └── run_eval.py               # 评测入口、策略对照、指标与结果文件输出
 │
 ├── springboot_gateway_demo/          # Java：独立 Maven 网关示范工程
-│   ├── README.md                     # Java 启动依赖、调用方式和未验证边界
+│   ├── readme.md                     # Java 启动依赖、调用方式和未验证边界
 │   ├── pom.xml                       # Maven 构建；显式使用本目录 Java 源文件
 │   ├── .gitignore                    # 网关工程忽略规则
 │   ├── GatewayApplication.java       # Spring Boot 启动入口
@@ -64,7 +64,7 @@ fullstack_agent_mvp/
 │       └── WorkflowTest.java         # 工单、审批、重放、失败恢复等工作流测试
 │
 └── evidence/                         # 已有验证记录；不是运行时代码
-    ├── VERIFICATION.md               # 验证说明
+    ├── verification.md               # 验证说明
     ├── python-tests.txt              # 已保存的 Python 测试输出
     ├── java-tests.txt                # 已保存的 Java 测试输出
     ├── protected-files-before.json   # 受保护文件的修改前快照记录
@@ -115,7 +115,7 @@ Graph 实际注册 9 个节点：`actor`、`tools`、`evaluate`、`reflect`、`a
 
 ## 5. 推荐源码阅读顺序
 
-1. `README.md`：先确认要解决的问题、运行模式与边界。
+1. `readme.md`：先确认要解决的问题、运行模式与边界。
 2. `python_service/schemas.py`：理解请求、报告和工具观察的数据契约。
 3. `python_service/main.py` → `python_service/runtime.py`：理解请求如何进入工单执行。
 4. `python_service/agent_graph.py`：理解状态、节点、反思循环和审批分支。

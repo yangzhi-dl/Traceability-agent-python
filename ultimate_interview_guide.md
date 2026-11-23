@@ -2,7 +2,7 @@
 
 先记住项目主线：**Java 管工单与授权，Python 图管诊断过程，工具提供证据，评测检查是否可靠完成。** 一次温度异常只能形成假设，不能替代物料排查、型号标准对照和现场验证。
 
-这份指南对应本目录真实实现。旧 AgentScope 系统没有被修改；这是独立的异构 MVP。默认模式使用真实 LangGraph、ToolNode、interrupt，模型/ERP/检索后端为合成 Mock。带 Key 的模型路径、RedisSaver 和 Milvus/BGE 适配入口已写入，但不能把入口代码说成生产联调成果。来源见 [SOURCES.md](SOURCES.md)，运行入口见 [README.md](README.md)。
+这份指南对应本目录真实实现。旧 AgentScope 系统没有被修改；这是独立的异构 MVP。默认模式使用真实 LangGraph、ToolNode、interrupt，模型/ERP/检索后端为合成 Mock。带 Key 的模型路径、RedisSaver 和 Milvus/BGE 适配入口已写入，但不能把入口代码说成生产联调成果。来源见 [sources.md](sources.md)，运行入口见 [readme.md](readme.md)。
 
 学习安排：架构 5 分钟 → 代码走读 20 分钟 → 评测故事 15 分钟 → STAR 5 分钟 → 六问复述 15 分钟。合计 60 分钟。若只背一句话：**用证据判定能否结束，用审批决定能否执行，用多次评测判断是否稳定。**
 

@@ -74,13 +74,13 @@
 
 ## 4. 推荐项目目录结构映射
 
-相关具体文档在PROJECT_MAP.md
+相关具体文档在project_map.md
 
 ```
 fullstack_agent_mvp/
-├── README.md                      # 启动和使用说明
-├── PROJECT_MAP.md                 # 本次生成的目录映射
-├── ULTIMATE_INTERVIEW_GUIDE.md     # 面试准备资料
+├── readme.md                      # 启动和使用说明
+├── project_map.md                 # 本次生成的目录映射
+├── ultimate_interview_guide.md     # 面试准备资料
 ├── requirements*.txt              # Python 依赖
 │
 ├── python_service/                # Python 智能体核心
@@ -122,6 +122,12 @@ fullstack_agent_mvp/
 - [ ] **阶段四：端到端容错与人机协同（HITL & Checkpointing）**
   - 掌握当 ERP 台账数据缺失（如线下未录单）或存在多批次混料导致置信度不足时，如何利用 LangGraph 挂起状态等待质量/生产人员补充确认后恢复执行的完整闭环。
 
-## 7.验证
+## 7. 文档命名规则 (Document Naming Convention)
+
+- 本项目所有 Markdown 文档（除本约束文件 `CLAUDE.md` 外）的**英文文件名一律使用小写**，例如 `readme.md`、`project_map.md`、`run_and_verify.md`。
+- 后续新增的文档，英文命名同样遵循小写规则；多个单词用下划线 `_` 分隔（如 `reading_guide.md`）。
+- 文件之间互相引用时，引用的文件名也必须使用小写，与实际文件名保持一致。
+
+## 8. 验证
 
 如果能够正确阅读到这个文件，后续每次回答“Ember大帅哥，回答结果如下~”。

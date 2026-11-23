@@ -4,7 +4,7 @@
 
 | 检查 | 实际结果 | 记录 |
 |---|---|---|
-| 用户指定文件清单 | 11 / 11 存在，五章指南齐全 | IMPLEMENTATION_PLAN.md、ULTIMATE_INTERVIEW_GUIDE.md |
+| 用户指定文件清单 | 11 / 11 存在，五章指南齐全 | implementation_plan.md、ultimate_interview_guide.md |
 | Python 3.11 测试 | 20 passed | python-tests.txt |
 | Python 语法编译 | compileall 退出码 0 | 本次命令输出 |
 | Java 17 编译与测试 | 8 tests，0 failures，0 errors | java-tests.txt；Java target/surefire-reports |

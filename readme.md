@@ -90,7 +90,7 @@ $done.report
 | 评测 | 真实轨迹 + 本地规则裁判 | `--mode llm` 启用结构化语义裁判，`JUDGE_MODEL` 可指定独立模型；失败记录为失败，不伪装规则通过 |
 | ERP/MES/库存/CAPA | 明确的合成 Mock | 没有真实 ERPNext 写连接。实际写适配器必须将审批 ID 幂等键与冻结/CAPA 放入外部系统事务 |
 | Hybrid RAG | BM25 + 本地 token cosine + 本地 lexical rerank；严格型号过滤 | `RAG_BACKEND=real` 调用真实 Milvus 与本地 embedding/BGE CrossEncoder，需预装模型与集合；不自动下载模型 |
-| Java/MySQL/Redis/JWT | 独立 Spring Boot 示例代码 | 见 `springboot_gateway_demo/README.md`；运行需要这些服务和认证签发方 |
+| Java/MySQL/Redis/JWT | 独立 Spring Boot 示例代码 | 见 `springboot_gateway_demo/readme.md`；运行需要这些服务和认证签发方 |
 
 不携带 `OPENAI_API_KEY` 时自动使用 Mock；若已有 Key 且只想离线体验，显式使用 `AGENT_MODE=mock` / `--mode mock`。真实模式是有费用的网络调用入口，本次自动验证不调用真实模型。
 
@@ -120,4 +120,4 @@ RedisSaver 需要 Redis 8 或带 JSON/Search 的 Redis Stack；初始化会创�
 - baseline 是故意关闭纠错行为的确定性消融，对照证明的是反馈控制逻辑；不是历史生产版本，也不能据此声称 LLM 鲁棒性提高多少。
 - 同一十条固定合成样本反复跑是回归验证，没有独立 holdout、业务专家盲评或生产效果证据。规则裁判只能检查有限字段/结构/数值，复杂因果语义仍需真实裁判及人工校准。
 
-产物：`evidence/mock-optimized/report.md`、`evidence/mock-baseline/report.md`、各目录 `trials.json`。详细来源见 [SOURCES.md](SOURCES.md)，学习与面试见 [ULTIMATE_INTERVIEW_GUIDE.md](ULTIMATE_INTERVIEW_GUIDE.md)。提示词给出的 64→94、76→95、58→86 只能作为假设故事，不是本工程实测。
+产物：`evidence/mock-optimized/report.md`、`evidence/mock-baseline/report.md`、各目录 `trials.json`。详细来源见 [sources.md](sources.md)，学习与面试见 [ultimate_interview_guide.md](ultimate_interview_guide.md)。提示词给出的 64→94、76→95、58→86 只能作为假设故事，不是本工程实测。

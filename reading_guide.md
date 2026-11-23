@@ -52,7 +52,7 @@
 ## 1. 阅读路线图（一张图看懂依赖关系）
 
 ```
-第 0 步   README.md / PROJECT_MAP.md     建立全局地图，知道有哪些文件
+第 0 步   readme.md / project_map.md     建立全局地图，知道有哪些文件
              │
 第 1 步   schemas.py                     数据契约：所有实体长什么样
              │
@@ -78,14 +78,14 @@
 
 ## 2. 分步阅读指南
 
-### 第 0 步：README.md + PROJECT_MAP.md（约 15 分钟）
+### 第 0 步：readme.md + project_map.md（约 15 分钟）
 
 **目的**：建立地图，不用细读。
 
 **盯住**：
-- `PROJECT_MAP.md` 第 3 节「功能 → 文件 → 核心符号」对照表
-- `PROJECT_MAP.md` 第 5 节「推荐源码阅读顺序」
-- `README.md` 里的启动方式和"未验证边界"
+- `project_map.md` 第 3 节「功能 → 文件 → 核心符号」对照表
+- `project_map.md` 第 5 节「推荐源码阅读顺序」
+- `readme.md` 里的启动方式和"未验证边界"
 
 **读完该能回答**：
 1. 这个项目分哪三大部分？（Python 智能体 / Java 网关 / 测试与评测）
